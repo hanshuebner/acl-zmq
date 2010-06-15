@@ -41,7 +41,7 @@
 (defconstant msg-more 1)
 (defconstant msg-shared 128)
 
-(defcstruct (msg)
+(defcstruct msg
   (content	:pointer)
   (shared	:uchar)
   (vsm-size	:uchar)
@@ -153,13 +153,11 @@
 (defcfun* ("zmq_send" %send) :int
   (s		:pointer)
   (msg		msg)
-  :optional
   (flags	:int))
 
 (defcfun* ("zmq_recv" %recv) :int
   (s		:pointer)
   (msg		msg)
-  :optional
   (flags	:int))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -190,6 +188,7 @@
   (minor	:pointer)
   (patch	:pointer))
 
+#-allegro
 (defcfun ("zmq_errno" errno) :int)
 
 (defcfun* ("zmq_device" %device) :int

@@ -8,12 +8,6 @@
 ;; (http://opensource.franz.com/preamble.html),
 ;; known as the LLGPL.
 
-(cl:eval-when (:load-toplevel :execute)
-  (asdf:operate 'asdf:load-op :cffi)
-  (asdf:operate 'asdf:load-op :trivial-garbage)
-#-windows
-  (asdf:operate 'asdf:load-op :iolib.syscalls))
-
 (defpackage #:zeromq-asd
   (:use :cl :asdf))
 
@@ -23,9 +17,12 @@
   :name "zeromq"
   :version "0.1"
   :author "Vitaly Mayatskikh <v.mayatskih@gmail.com>"
-  :licence "LGPLv3"
+  :licence "LLGPL"
   :description "Zero MQ 2 bindings"
   :serial t
+  :depends-on (:trivial-garbage
+               #-allegro :cffi
+               #-(or windows allegro) :iolib.syscalls)
   :components ((:file "package")
                (:file "meta")
                (:file "zeromq")

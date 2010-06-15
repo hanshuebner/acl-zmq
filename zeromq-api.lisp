@@ -16,6 +16,7 @@
   (len	:long))
 
 ;; Stolen from CFFI. Uses custom allocator (alloc-fn) instead of foreign-alloc
+#-allegro
 (defun copy-lisp-string-octets (string alloc-fn &key (encoding cffi::*default-foreign-encoding*)
                              (null-terminated-p t) (start 0) end)
   "Allocate a foreign string containing Lisp string STRING.

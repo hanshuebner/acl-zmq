@@ -10,7 +10,8 @@
 
 (defpackage #:zeromq
   (:nicknames :zmq)
-  (:use :cl :cffi)
+  (:use :cl
+        #-allegro :cffi)
   (:shadow #:close #:identity)
   (:export
    ;; constants
@@ -100,10 +101,15 @@
 
 (in-package :zeromq)
 
+#-allegro
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (define-foreign-library zeromq
     (:unix (:or "libzmq.so.0.0.0" "libzmq.so"))
     (:windows "libzmq.dll")
     (t "libzmq")))
 
+#-allegro
 (use-foreign-library zeromq)
+
+#+allegro
+(load "libzmq.so")
