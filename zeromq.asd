@@ -24,6 +24,7 @@
                #-allegro :cffi
                #-(or windows allegro) :iolib.syscalls)
   :components ((:file "package")
-               (:file "meta")
+               #-allegro (:file "meta")
+               #+allegro (:file "meta-acl")
                (:file "zeromq")
                (:file "zeromq-api")))
