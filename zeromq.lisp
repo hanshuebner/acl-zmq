@@ -24,6 +24,9 @@
 (defcfun ("zmq_strerror" %strerror) :pointer
   (errnum	:int))
 
+(define-condition error-again (error)
+  ())
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;  0MQ message definition.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -41,17 +44,17 @@
 (defconstant msg-more 1)
 (defconstant msg-shared 128)
 
-(defcstruct msg
+(defcstruct %msg
   (content	:pointer)
   (shared	:uchar)
   (vsm-size	:uchar)
   (vsm-data	:uchar :count 30))	;; FIXME max-vsm-size
 
 (defcfun ("zmq_msg_init" msg-init) :int
-  (msg	msg))
+  (msg	%msg))
 
 (defcfun* ("zmq_msg_init_size" %msg-init-size) :int
-  (msg	msg)
+  (msg	%msg)
   (size	:long))
 
 (defcallback zmq-free :void ((ptr :pointer) (hint :pointer))
@@ -59,28 +62,28 @@
   (foreign-free ptr))
 
 (defcfun ("zmq_msg_init_data" msg-init-data) :int
-  (msg	msg)
+  (msg	%msg)
   (data	:pointer)
   (size	:long)
   (ffn	:pointer)			; zmq_free_fn
   (hint	:pointer))
 
 (defcfun* ("zmq_msg_close" %msg-close) :int
-  (msg	msg))
+  (msg	%msg))
 
 (defcfun ("zmq_msg_move" %msg-move) :int
-  (dest	msg)
-  (src	msg))
+  (dest	%msg)
+  (src	%msg))
 
 (defcfun ("zmq_msg_copy" %msg-copy) :int
-  (dest	msg)
-  (src	msg))
+  (dest	%msg)
+  (src	%msg))
 
 (defcfun ("zmq_msg_data" %msg-data) :pointer
-  (msg	msg))
+  (msg	%msg))
 
 (defcfun ("zmq_msg_size" %msg-size) :int
-  (msg	msg))
+  (msg	%msg))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;  0MQ infrastructure (a.k.a. context) initialisation & termination.
@@ -152,12 +155,12 @@
 
 (defcfun* ("zmq_send" %send) :int
   (s		:pointer)
-  (msg		msg)
+  (msg		%msg)
   (flags	:int))
 
 (defcfun* ("zmq_recv" %recv) :int
   (s		:pointer)
-  (msg		msg)
+  (msg		%msg)
   (flags	:int))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -168,7 +171,7 @@
 (defconstant pollout 2)
 (defconstant pollerr 4)
 
-(defcstruct pollitem
+(defcstruct %pollitem
   (socket	:pointer)
   (fd		:int)
   (events	:short)

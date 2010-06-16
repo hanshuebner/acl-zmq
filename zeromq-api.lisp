@@ -41,7 +41,7 @@ The string must be freed with FOREIGN-STRING-FREE."
   ((raw		:accessor msg-raw :initform nil)))
 
 (defmethod initialize-instance :after ((inst msg) &key size data)
-  (let ((obj (foreign-alloc 'msg)))
+  (let ((obj (foreign-alloc '%msg)))
     (tg:finalize inst (lambda ()
 			(%msg-close obj)
 			(foreign-free obj)))
@@ -75,7 +75,7 @@ The string must be freed with FOREIGN-STRING-FREE."
    (revents	:accessor pollitem-revents :initform 0)))
 
 (defmethod initialize-instance :after ((inst pollitem) &key)
-  (let ((obj (foreign-alloc 'pollitem)))
+  (let ((obj (foreign-alloc '%pollitem)))
     (setf (pollitem-raw inst) obj)
     (tg:finalize inst (lambda () (foreign-free obj)))))
 
