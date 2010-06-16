@@ -1,4 +1,4 @@
-;; Copyright (c) 2009, 2010 Vitaly Mayatskikh <v.mayatskih@gmail.com>
+q;; Copyright (c) 2009, 2010 Vitaly Mayatskikh <v.mayatskih@gmail.com>
 ;;
 ;; This file is part of CL-ZMQ.
 ;;
@@ -14,28 +14,6 @@
   (dst	:pointer)
   (src	:pointer)
   (len	:long))
-
-;; Stolen from CFFI. Uses custom allocator (alloc-fn) instead of foreign-alloc
-#-allegro
-(defun copy-lisp-string-octets (string alloc-fn &key (encoding cffi::*default-foreign-encoding*)
-                             (null-terminated-p t) (start 0) end)
-  "Allocate a foreign string containing Lisp string STRING.
-The string must be freed with FOREIGN-STRING-FREE."
-  (check-type string string)
-  (cffi::with-checked-simple-vector ((string (coerce string 'babel:unicode-string))
-				     (start start) (end end))
-    (declare (type simple-string string))
-    (let* ((mapping (cffi::lookup-mapping cffi::*foreign-string-mappings* encoding))
-           (count (funcall (cffi::octet-counter mapping) string start end 0))
-           (length (if null-terminated-p
-                       (+ count (cffi::null-terminator-len encoding))
-                       count))
-	   (ptr (funcall alloc-fn length)))
-      (funcall (cffi::encoder mapping) string start end ptr 0)
-      (when null-terminated-p
-        (dotimes (i (cffi::null-terminator-len encoding))
-          (setf (mem-ref ptr :char (+ count i)) 0)))
-      (values ptr length))))
 
 (defclass msg ()
   ((raw		:accessor msg-raw :initform nil)))
@@ -156,11 +134,11 @@ The string must be freed with FOREIGN-STRING-FREE."
 
 (defun poll (items &optional (timeout -1))
   (let ((len (length items)))
-    (with-foreign-object (%items 'pollitem len)
+    (with-foreign-object (%items '%pollitem len)
       (dotimes (i len)
 	(let ((item (nth i items))
-	      (%item (mem-aref %items 'pollitem i)))
-	  (with-foreign-slots ((socket fd events revents) %item pollitem)
+	      (%item (mem-aref %items '%pollitem i)))
+	  (with-foreign-slots ((socket fd events revents) %item %pollitem)
 	    (setf socket (pollitem-socket item)
 		  fd (pollitem-fd item)
 		  events (pollitem-events item)))))
@@ -169,8 +147,8 @@ The string must be freed with FOREIGN-STRING-FREE."
 	  ((zerop ret) nil)
 	  ((plusp ret)
 	    (loop for i below len
-	       for revent = (foreign-slot-value (mem-aref %items 'pollitem i)
-						'pollitem
+	       for revent = (foreign-slot-value (mem-aref %items '%pollitem i)
+						'%pollitem
 						'revents)
 	       collect (setf (pollitem-revents (nth i items)) revent)))
 	  (t (error (convert-from-foreign (%strerror (errno)) :string))))))))

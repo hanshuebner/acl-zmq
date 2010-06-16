@@ -44,3 +44,25 @@
 			((eq errno isys:eagain) (error 'error-again :argument errno))
 			(t (error (convert-from-foreign (%strerror errno) :string)))))
 		,ret))))))))
+
+;; Stolen from CFFI. Uses custom allocator (alloc-fn) instead of foreign-alloc
+(defun copy-lisp-string-octets (string alloc-fn &key (encoding cffi::*default-foreign-encoding*)
+                             (null-terminated-p t) (start 0) end)
+  "Allocate a foreign string containing Lisp string STRING.
+The string must be freed with FOREIGN-STRING-FREE."
+  (check-type string string)
+  (cffi::with-checked-simple-vector ((string (coerce string 'babel:unicode-string))
+				     (start start) (end end))
+    (declare (type simple-string string))
+    (let* ((mapping (cffi::lookup-mapping cffi::*foreign-string-mappings* encoding))
+           (count (funcall (cffi::octet-counter mapping) string start end 0))
+           (length (if null-terminated-p
+                       (+ count (cffi::null-terminator-len encoding))
+                       count))
+	   (ptr (funcall alloc-fn length)))
+      (funcall (cffi::encoder mapping) string start end ptr 0)
+      (when null-terminated-p
+        (dotimes (i (cffi::null-terminator-len encoding))
+          (setf (mem-ref ptr :char (+ count i)) 0)))
+      (values ptr length))))
+

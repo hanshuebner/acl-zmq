@@ -187,9 +187,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defcfun ("zmq_version" %version) :void
-  (major	:pointer)
-  (minor	:pointer)
-  (patch	:pointer))
+  (major	:pointer :int)
+  (minor	:pointer :int)
+  (patch	:pointer :int))
 
 #-allegro
 (defcfun ("zmq_errno" errno) :int)

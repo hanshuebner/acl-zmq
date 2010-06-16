@@ -10,25 +10,31 @@
 
 (in-package :zeromq)
 
-#+allegro
-(defun map-type (type)
-  (case type
-    (:pointer
-     '(* :void))
-    #+64bit
-    (:int64
-     :long)
-    (:uchar
-     :unsigned-char)
-    (otherwise
-     (cond
-       ((keywordp type)
-        type)
-       ((symbolp type)
-        `(* ,type))
-       ((listp type)
-        (assert (= :pointer (first type)))
-        `(* ,(map-type (second type))))))))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (setq ff:*pass-structs-by-value* nil))
+
+(defun map-type (type &rest args)
+  (let ((type (if (and (listp type)
+                       (eq 'quote (first type)))
+                  (second type)
+                  type)))
+    (cond
+      ((eq type :pointer)
+       `(* ,(or (first args) :void)))
+      (args
+       (append `(:array ',(map-type type)) args))
+      ((listp type)
+       (assert (eql :pointer (first type)) () "expected :pointer, got ~A" (first type))
+       `(* ,(map-type (second type))))
+      (t
+       (case type
+         #+64bit
+         (:int64
+          :long)
+         (:uchar
+          :unsigned-char)
+         (t
+          type))))))
 
 (defun map-argument (argument)
   (destructuring-bind (name type &rest args) argument
@@ -39,12 +45,13 @@
             ((eq :pointer (first args))
              `(* ,(or (second args) :void)))
             (t
-             (map-type type))))))
+             (apply #'map-type type args))))))
 
 (defmacro defcfun ((c-name lisp-name) return-type &rest arguments)
   `(ff:def-foreign-call (,lisp-name ,c-name)
        ,(mapcar #'map-argument arguments)
-     :returning (,(map-type return-type))))
+     :returning (,(map-type return-type))
+     :strings-convert nil))
 
 (defmacro defcfun* ((c-name lisp-name) return-type &rest arguments)
   (let ((lisp-stub-name (intern (format nil "%~A" lisp-name) :zeromq))
@@ -54,11 +61,12 @@
        (ff:def-foreign-call (,lisp-stub-name ,c-name)
            ,(mapcar #'map-argument arguments)
          :returning (,(map-type return-type))
+         :strings-convert nil
          :error-value :errno)
        (defun ,lisp-name ,argument-names
          (multiple-value-bind (,return-value errno) (,lisp-stub-name ,@argument-names)
              (if ,(if (eq return-type :pointer)
-                  `(zerop (ff:foreign-pointer-address ,return-value))
+                  `(zerop ,return-value)
                   `(not (zerop ,return-value)))
                  (if (eq errno excl::*eagain*)
                      (error 'error-again)
@@ -73,16 +81,41 @@
   `(ff:defun-foreign-callable ,name ,(mapcar #'map-argument args)
      ,@body))
 
+(defmacro with-foreign-object (object &body body)
+  `(ff:with-static-fobject ,(map-argument object)
+     ,@body))
+
 (defmacro with-foreign-objects (objects &body body)
   `(ff:with-static-fobjects ,(mapcar #'map-argument objects)
      ,@body))
 
+(defmacro with-foreign-string ((c-string lisp-string) &body body)
+  `(let ((,c-string (excl:string-to-native ,lisp-string)))
+     (unwind-protect
+          (progn ,@body)
+       (excl:aclfree ,c-string))))
+
 (defmacro mem-aref (object type &rest indices)
-  `(ff:fslot-value-typed ,(map-type type) :c ,object ,@indices))
+  `(ff:fslot-value-typed ',(map-type type) :foreign ,object ,@indices))
+
+(defmacro mem-ref (object type)
+  `(ff:fslot-value-typed ',(map-type type) :foreign ,object))
 
 (defmacro foreign-type-size (type)
-  `(ff:sizeof-fobject ,(map-type type)))
+  `(ff:sizeof-fobject ',(map-type type)))
 
 (defmacro foreign-alloc (type)
-  `(ff:allocate-fobject ,type))
+  `(ff:allocate-fobject ,type :foreign))
 
+(defmacro foreign-free (pointer)
+  `(ff:free-fobject ,pointer))
+
+(defmacro foreign-slot-value (address type slot-name)
+  `(ff:fslot-value-typed ,type :foreign ,address ,slot-name))
+
+(defmacro with-foreign-slots ((slots address type) &body body)
+  (flet
+      ((gen-slot-accessor (slot-name)
+         `(,slot-name (ff:fslot-value-typed ',type :foreign ,address ',slot-name))))
+    `(symbol-macrolet ,(mapcar #'gen-slot-accessor slots)
+       ,@body)))
