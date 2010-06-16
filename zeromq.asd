@@ -18,13 +18,10 @@
   :version "0.1"
   :author "Vitaly Mayatskikh <v.mayatskih@gmail.com>"
   :licence "LLGPL"
-  :description "Zero MQ 2 bindings"
+  :description "ACL Zero MQ 2 bindings"
   :serial t
-  :depends-on (:trivial-garbage
-               #-allegro :cffi
-               #-(or windows allegro) :iolib.syscalls)
   :components ((:file "package")
-               #-allegro (:file "meta")
-               #+allegro (:file "meta-acl")
+               (:file "meta-acl")
                (:file "zeromq")
-               (:file "zeromq-api")))
+               (:file "zeromq-api")
+               (:file "perf-tests")))

@@ -21,8 +21,6 @@
     (cond
       ((eq type :pointer)
        `(* ,(or (first args) :void)))
-      (args
-       (append `(:array ',(map-type type)) args))
       ((listp type)
        (assert (eql :pointer (first type)) () "expected :pointer, got ~A" (first type))
        `(* ,(map-type (second type))))
@@ -65,13 +63,13 @@
          :error-value :errno)
        (defun ,lisp-name ,argument-names
          (multiple-value-bind (,return-value errno) (,lisp-stub-name ,@argument-names)
-             (if ,(if (eq return-type :pointer)
-                  `(zerop ,return-value)
-                  `(not (zerop ,return-value)))
-                 (if (eq errno excl::*eagain*)
-                     (error 'error-again)
-                     (error 'syscall-error :errno errno))
-                 ,return-value))))))
+           (if ,(if (eq return-type :pointer)
+                    `(zerop ,return-value)
+                    `(not (zerop ,return-value)))
+               (if (eq errno excl::*eagain*)
+                   (error 'error-again)
+                   (error 'zmq-syscall-error :call-name ,c-name :errno errno))
+               ,return-value))))))
 
 (defmacro defcstruct (name &rest args)
   `(ff:def-foreign-type ,name (:struct ,@(mapcar #'map-argument args))))
@@ -81,41 +79,15 @@
   `(ff:defun-foreign-callable ,name ,(mapcar #'map-argument args)
      ,@body))
 
-(defmacro with-foreign-object (object &body body)
-  `(ff:with-static-fobject ,(map-argument object)
-     ,@body))
-
-(defmacro with-foreign-objects (objects &body body)
-  `(ff:with-static-fobjects ,(mapcar #'map-argument objects)
-     ,@body))
-
 (defmacro with-foreign-string ((c-string lisp-string) &body body)
   `(let ((,c-string (excl:string-to-native ,lisp-string)))
      (unwind-protect
           (progn ,@body)
        (excl:aclfree ,c-string))))
 
-(defmacro mem-aref (object type &rest indices)
-  `(ff:fslot-value-typed ',(map-type type) :foreign ,object ,@indices))
-
-(defmacro mem-ref (object type)
-  `(ff:fslot-value-typed ',(map-type type) :foreign ,object))
-
-(defmacro foreign-type-size (type)
-  `(ff:sizeof-fobject ',(map-type type)))
-
-(defmacro foreign-alloc (type)
-  `(ff:allocate-fobject ,type :foreign))
-
-(defmacro foreign-free (pointer)
-  `(ff:free-fobject ,pointer))
-
-(defmacro foreign-slot-value (address type slot-name)
-  `(ff:fslot-value-typed ,type :foreign ,address ,slot-name))
-
 (defmacro with-foreign-slots ((slots address type) &body body)
   (flet
       ((gen-slot-accessor (slot-name)
-         `(,slot-name (ff:fslot-value-typed ',type :foreign ,address ',slot-name))))
+         `(,slot-name (ff:fslot-value-typed ',type :c ,address ',slot-name))))
     `(symbol-macrolet ,(mapcar #'gen-slot-accessor slots)
        ,@body)))

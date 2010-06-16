@@ -10,6 +10,8 @@
 
 (in-package :zeromq)
 
+(load "libzmq.so")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;  0MQ errors.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -26,6 +28,13 @@
 
 (define-condition error-again (error)
   ())
+
+(define-condition zmq-syscall-error (excl:syscall-error)
+  ((call-name :initarg :call-name :reader error-call-name))
+  (:report (lambda (c stream)
+             (format stream "ZMQ call ~S failed: ~A"
+                     (error-call-name c)
+                     (excl:native-to-string (%strerror (excl:syscall-error-errno c)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;  0MQ message definition.
@@ -59,7 +68,7 @@
 
 (defcallback zmq-free :void ((ptr :pointer) (hint :pointer))
   (declare (ignorable hint))
-  (foreign-free ptr))
+  (excl:aclfree ptr))
 
 (defcfun ("zmq_msg_init_data" msg-init-data) :int
   (msg	%msg)
@@ -177,7 +186,7 @@
   (events	:short)
   (revents	:short))
 
-(defcfun ("zmq_poll" %poll) :int
+(defcfun* ("zmq_poll" %poll) :int
   (items	:pointer)
   (nitems	:int)
   (timeout	:long))
@@ -190,9 +199,6 @@
   (major	:pointer :int)
   (minor	:pointer :int)
   (patch	:pointer :int))
-
-#-allegro
-(defcfun ("zmq_errno" errno) :int)
 
 (defcfun* ("zmq_device" %device) :int
   (device	:int)
