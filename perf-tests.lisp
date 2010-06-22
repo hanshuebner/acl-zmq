@@ -8,6 +8,10 @@
 ;; (http://opensource.franz.com/preamble.html),
 ;; known as the LLGPL.
 
+;; The performance tests are basically a translation of the 0MQ
+;; performance tests written in C, and they can be run against their C
+;; counterparts.
+
 (defpackage :zeromq-test
   (:use :cl))
 
@@ -49,30 +53,35 @@
                        non-blocking)
   (declare (ignore message-size))
   (zmq:with-context (ctx 1)
-    (zmq:with-socket (s ctx zmq:rep)
+    (zmq:with-socket (s ctx zmq:+rep+)
       (zmq:bind s address)
       (let ((msg (make-instance 'zmq:msg)))
-        (dotimes (i roundtrip-count)
-          (if non-blocking
-              (tagbody retry
-                 (handler-case
+        (flet ((do-one-roundtrip ()
+                 (if non-blocking
+                     (tagbody retry
+                        (handler-case
+                            (progn
+                              (zmq:recv s msg zmq:+noblock+)
+                              (format t "size ~d, ~a~%" (zmq:msg-size msg) (zmq:msg-data-as-array msg)))
+                          (zmq:error-again (c)
+                            (declare (ignore c))
+                            (sleep 0.01)
+                            (go retry))))
                      (progn
-                       (zmq:recv s msg zmq:noblock)
-                       (format t "size ~d, ~a~%" (zmq:msg-size msg) (zmq:msg-data-as-array msg)))
-                   (zmq:error-again (c)
-                     (declare (ignore c))
-                     (sleep 0.01)
-                     (go retry))))
-              (progn
-                (zmq:recv s msg)
-                (zmq:send s msg))))))))
+                       (zmq:recv s msg)
+                       (zmq:send s msg)))))
+          (if roundtrip-count
+              (dotimes (i roundtrip-count)
+                (do-one-roundtrip))
+              (loop
+                 (do-one-roundtrip))))))))
 
 (defun remote-lat (&key (address *address*)
                         (roundtrip-count *roundtrip-count*)
                         (message-size *message-size*))
   (let (elapsed)
     (zmq::with-context (ctx 1)
-      (zmq:with-socket (s ctx zmq:req)
+      (zmq:with-socket (s ctx zmq:+req+)
         (zmq:connect s address)
         (let ((msg (make-instance 'zmq:msg :size message-size)))
           (setf elapsed
@@ -92,9 +101,9 @@
                        (message-count *message-count*))
   (let (elapsed)
     (zmq::with-context (ctx 1)
-      (zmq:with-socket (s ctx zmq:sub)
-        (zmq:setsockopt s zmq:subscribe "")
-        (zmq:setsockopt s zmq:rate rate)
+      (zmq:with-socket (s ctx zmq:+sub+)
+        (zmq:setsockopt s zmq:+subscribe+ "")
+        (zmq:setsockopt s zmq:+rate+ rate)
         (zmq:bind s bind-address)
         (let ((msg (make-instance 'zmq:msg)))
           (zmq:recv s msg)
@@ -115,8 +124,8 @@
                         (message-size *message-size*)
                         (message-count *message-count*))
   (zmq::with-context (ctx 1)
-    (zmq:with-socket (s ctx zmq:upstream)
-      (zmq:setsockopt s zmq:rate rate)
+    (zmq:with-socket (s ctx zmq:+upstream+)
+      (zmq:setsockopt s zmq:+rate+ rate)
       (zmq:connect s connect-address)
       (let ((msg (make-instance 'zmq:msg)))
         (dotimes (i message-count)

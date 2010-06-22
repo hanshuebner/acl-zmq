@@ -16,12 +16,12 @@
 ;;  0MQ errors.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defconstant hausnumero 156384712)
+(defconstant +hausnumero+ 156384712)
 
-;;  Native 0MQ error codes.
-(defconstant emthread (+ hausnumero 50))
-(defconstant efsm (+ hausnumero 51))
-(defconstant enocompatproto (+ hausnumero 52))
+;; + Native 0MQ error+ codes.
+(defconstant +emthread+ (+ +hausnumero+ 50))
+(defconstant +efsm+ (+ +hausnumero+ 51))
+(defconstant +enocompatproto+ (+ +hausnumero+ 52))
 
 (defcfun ("zmq_strerror" %strerror) :pointer
   (errnum	:int))
@@ -40,18 +40,18 @@
 ;;  0MQ message definition.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defconstant max-vsm-size 30)
+(defconstant +max-vsm-size+ 30)
 
 ;;  Message types. These integers may be stored in 'content' member of the
 ;;  message instead of regular pointer to the data.
-(defconstant delimiter 31)
-(defconstant vsm 32)
+(defconstant +delimiter+ 31)
+(defconstant +vsm+ 32)
 
 ;; Message flags. ZMQ_MSG_SHARED is strictly speaking not a message flag
 ;; (it has no equivalent in the wire format), however, making  it a flag
 ;; allows us to pack the stucture tigher and thus improve performance.
-(defconstant msg-more 1)
-(defconstant msg-shared 128)
+(defconstant +msg-more+ 1)
+(defconstant +msg-shared+ 128)
 
 (defcstruct %msg
   (content	:pointer)
@@ -108,37 +108,37 @@
 ;;  0MQ socket definition.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defconstant p2p 0)
-(defconstant pub 1)
-(defconstant sub 2)
-(defconstant req 3)
-(defconstant rep 4)
-(defconstant xreq 5)
-(defconstant xrep 6)
-(defconstant upstream 7)
-(defconstant downstream 8)
+(defconstant +p2p+ 0)
+(defconstant +pub+ 1)
+(defconstant +sub+ 2)
+(defconstant +req+ 3)
+(defconstant +rep+ 4)
+(defconstant +xreq+ 5)
+(defconstant +xrep+ 6)
+(defconstant +upstream+ 7)
+(defconstant +downstream+ 8)
 
-(defconstant hwm 1)
-(defconstant swap 3)
-(defconstant affinity 4)
-(defconstant identity 5)
-(defconstant subscribe 6)
-(defconstant unsubscribe 7)
-(defconstant rate 8)
-(defconstant recovery-ivl 9)
-(defconstant mcast-loop 10)
-(defconstant sndbuf 11)
-(defconstant rcvbuf 12)
-(defconstant rcvmore 13)
+(defconstant +hwm+ 1)
+(defconstant +swap+ 3)
+(defconstant +affinity+ 4)
+(defconstant +identity+ 5)
+(defconstant +subscribe+ 6)
+(defconstant +unsubscribe+ 7)
+(defconstant +rate+ 8)
+(defconstant +recovery-ivl+ 9)
+(defconstant +mcast-loop+ 10)
+(defconstant +sndbuf+ 11)
+(defconstant +rcvbuf+ 12)
+(defconstant +rcvmore+ 13)
 
-(defconstant noblock 1)
-(defconstant sndmore 2)
+(defconstant +noblock+ 1)
+(defconstant +sndmore+ 2)
 
-(defcfun* ("zmq_socket" socket) :pointer
+(defcfun* ("zmq_socket" zmq_socket) :pointer
   (context	:pointer)
   (type		:int))
 
-(defcfun ("zmq_close" close) :int
+(defcfun ("zmq_close" zmq_close) :int
   (s	:pointer))
 
 (defcfun* ("zmq_setsockopt" %setsockopt) :int
@@ -176,9 +176,9 @@
 ;;  I/O multiplexing.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defconstant pollin 1)
-(defconstant pollout 2)
-(defconstant pollerr 4)
+(defconstant +pollin+ 1)
+(defconstant +pollout+ 2)
+(defconstant +pollerr+ 4)
 
 (defcstruct %pollitem
   (socket	:pointer)
