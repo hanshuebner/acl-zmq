@@ -99,7 +99,7 @@
        (term ,context))))
 
 (defmacro with-socket ((socket context type) &body body)
-  `(let ((,socket (zmq_socket ,context ,type)))
+  `(let ((,socket (zmq_socket ,context ,(lookup-constant type))))
      (unwind-protect
 	  (progn ,@body)
        (zmq_close ,socket))))
@@ -129,28 +129,25 @@
     (ff:fslot-value opt :long)))
 
 #+(or)
-(do-polling
- ((:fd 0 zmq:pollin)
+(do-polling ()
+ ((:fd 0 :pollin)
   (handle-standard-input))
- ((:socket the-zmq-socket zmq:+pollin+)
+ ((:socket the-zmq-socket :pollin)
   (handle-socket the-zmq-socket))
  ((:timeout 30)
-  (do-something-periodically))
- ((:always)
-  (do-something-after-every-poll)))
+  (do-something-periodically)))
 
 (defun parse-poll-clauses (clauses)
-  (let (pollitems timeout always)
+  (let (pollitems timeout)
     (dolist (clause clauses)
-      (destructuring-bind ((directive &optional arg event) &body body) clause
+      (destructuring-bind ((directive &optional arg (event :pollin)) &body body) clause
         (ecase directive
           (:fd (push `((:fd ,arg :event ,event) (lambda () ,@body)) pollitems))
           (:socket (push `((:socket ,arg :event ,event) (lambda () ,@body)) pollitems))
           (:timeout (when timeout
                       (error "duplicate :timeout clause in do-polling"))
-                    (setf timeout (list arg `(lambda () ,@body))))
-          (:always (setf always `(lambda () ,@body))))))
-    (list (nreverse pollitems) timeout always)))
+                    (setf timeout (list arg `(lambda () ,@body)))))))
+    (list (nreverse pollitems) timeout)))
 
 (defun init-pollitems (pollitems)
   (let (retval
@@ -160,31 +157,30 @@
       (destructuring-bind ((&key socket fd event) body) pollitem
         (push `(setf (ff:fslot-value %items ,index 'socket) ,(or socket 0)
                      (ff:fslot-value %items ,index 'fd) ,(or fd -1)
-                     (ff:fslot-value %items ,index 'events) ,(or event +pollin+)
+                     (ff:fslot-value %items ,index 'events) ,(or (lookup-constant event) +pollin+)
                      (aref handlers ,index) ,body)
               retval)
         (incf index)))))
 
-(defmacro do-polling (&rest clauses)
+(defmacro do-polling ((&key label) &rest clauses)
   (destructuring-bind
-        (pollitems timeout always)
+        (pollitems timeout)
       (parse-poll-clauses clauses)
     (let ((nitems (length pollitems)))
-    `(let ((handlers (make-array (list ,nitems))))
-       (ff:with-static-fobject (%items `(:array %pollitem ,,nitems))
-         ,@(init-pollitems pollitems)
-         (loop
-            (let ((count (%poll %items ,nitems ,(if timeout (first timeout) -1))))
-              (if (plusp count)
-                  (dotimes (i ,nitems)
-                    (when (plusp (ff:fslot-value %items i 'revents))
-                      (funcall (aref handlers i))
-                      (when (zerop (decf count))
-                        (return))))
-                  ,@(when timeout
-                      `((funcall ,(second timeout)))))
-              ,@(when always
-                  `((funcall ,always))))))))))
+    `(block ,label
+       (let ((handlers (make-array (list ,nitems))))
+         (ff:with-static-fobject (%items `(:array %pollitem ,,nitems))
+           ,@(init-pollitems pollitems)
+           (loop
+              (let ((count (%poll %items ,nitems ,(if timeout (first timeout) -1))))
+                (if (plusp count)
+                    (dotimes (i ,nitems)
+                      (when (plusp (ff:fslot-value %items i 'revents))
+                        (funcall (aref handlers i))
+                        (when (zerop (decf count))
+                          (return))))
+                    ,@(when timeout
+                            `((funcall ,(second timeout)))))))))))))
 
 (defun version ()
   (ff:with-stack-fobjects ((major :int)
