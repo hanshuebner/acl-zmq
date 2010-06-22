@@ -28,39 +28,4 @@
            #:recv
            #:setsockopt
 
-           #:error-again
-
-           #:+emthread+
-           #:+efsm+
-           #:+enocompatproto+
-           #:+max-vsm-size+
-           #:+delimiter+
-           #:+vsm+
-           #:+msg-more+
-           #:+msg-shared+
-           #:+p2p+
-           #:+pub+
-           #:+sub+
-           #:+req+
-           #:+rep+
-           #:+xreq+
-           #:+xrep+
-           #:+upstream+
-           #:+downstream+
-           #:+hwm+
-           #:+swap+
-           #:+affinity+
-           #:+identity+
-           #:+subscribe+
-           #:+unsubscribe+
-           #:+rate+
-           #:+recovery-ivl+
-           #:+mcast-loop+
-           #:+sndbuf+
-           #:+rcvbuf+
-           #:+rcvmore+
-           #:+noblock+
-           #:+sndmore+
-           #:+pollin+
-           #:+pollout+
-           #:+pollerr+))
+           #:error-again))
