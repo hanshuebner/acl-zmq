@@ -18,4 +18,5 @@
                (:file "meta-acl")
                (:file "zeromq-ffi")
                (:file "zeromq-api")
-               (:file "perf-tests")))
+               (:file "perf-tests")
+               (:file "poll-test")))
