@@ -10,7 +10,10 @@
 
 (in-package :zeromq)
 
+#-:macosx
 (load "libzmq.so")
+#+:macosx
+(load "libzmq.dylib" :foreign t)
 
 (defvar *named-constants* nil)
 
