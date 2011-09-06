@@ -104,6 +104,15 @@
 	  (progn ,@body)
        (zmq_close ,socket))))
 
+(defmacro with-sockets (sockets &body body)
+  (loop for (socket context type) in sockets
+     collect `(,socket (zmq_socket ,context ,(lookup-constant type))) into bindings
+     collect `(zmq_close ,socket) into cleanup
+     finally (return `(let ,bindings
+                        (unwind-protect
+                             (progn ,@body)
+                          (progn ,@cleanup))))))
+
 (defun send (s msg &optional flags)
   (%send s (msg-raw msg) (or flags 0)))
 
