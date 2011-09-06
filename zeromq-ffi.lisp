@@ -139,6 +139,8 @@
 (defconstant* +xrep+ 6)
 (defconstant* +upstream+ 7)
 (defconstant* +downstream+ 8)
+(defconstant* +push+ 7)
+(defconstant* +pull+ 8)
 
 (defconstant* +hwm+ 1)
 (defconstant* +swap+ 3)
