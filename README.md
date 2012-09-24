@@ -17,3 +17,8 @@ be integer length issues with 32 bit platforms.
 
 Like cl-zmq, acl-zmq is distributed under the
 [LLGPL](http://opensource.franz.com/preamble.html).
+
+The code has not been tested or used a lot, so it is likely to 
+contain bugs.  As I am not currently using ACL and ZMQ, I cannot give
+any support for it.  Please keep this in mind if you use it as a
+starting point for your project.
